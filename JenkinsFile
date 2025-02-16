@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        WORK_DIR = '/home/ubuntu/FMD-trails'  // Set your working directory path here
+        WORK_DIR = '/home/shafee/FMD-trails'  // Set your working directory path here
         VENV_PATH = "$WORK_DIR/venv/bin/activate"
     }
 
@@ -10,10 +10,11 @@ pipeline {
         stage('Checkout') {
             steps {
                 script {
-                    dir("/home/ubuntu") {
-                        // Checkout the repository to the working directory
-                        git branch: 'main', url: 'https://github.com/ShafeeqAhamedS/FMD-trails.git'
-                    }
+                    // Checkout the repository to the working directory
+                    sh """
+                        cd /home/shafee/
+                        git clone https://github.com/ShafeeqAhamedS/FMD-trails.git
+                    """
                 }
             }
         }
