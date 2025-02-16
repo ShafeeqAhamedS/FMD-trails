@@ -9,6 +9,7 @@ load_dotenv()
 
 def main():
     try:
+        work_dir = os.getcwd()
         genai.configure(api_key=os.getenv("API_KEY"))
 
         model = genai.GenerativeModel(
@@ -16,32 +17,32 @@ def main():
             generation_config=generation_config,
         )
 
-        ipynb_file = "./User_Input/code.ipynb"
-        dataset_file = "./User_Input/Position_Salaries.csv"
+        ipynb_file = work_dir+"/generate_code/user_input/code.ipynb"
+        dataset_file = work_dir+"/generate_code/user_input/student_scores - student_scores.csv"
 
-        user_input_path = "User_Input/*"
-        backend_path = "../backend"
+        user_input_path = work_dir+"/generate_code/user_input/*"
+        backend_path = work_dir+"/backend"
 
         prepare_environment(user_input_path, backend_path)
 
-        eval_prompt_file = "./eval/prompt.md"
-        eval_template_code = "./eval/template_code.md"
-        eval_output_file = "./eval/output.py"
-        eval_full_prompt_file = "./eval/full_prompt.md"
-        eval_output_log = "./eval/output.log"
-        replace_new_code_path = "./eval/new_code.py"
+        eval_prompt_file = work_dir+"/generate_code/eval/prompt.md"
+        eval_template_code = work_dir+"/generate_code/eval/template_code.md"
+        eval_output_file = work_dir+"/generate_code/eval/output.py"
+        eval_full_prompt_file = work_dir+"/generate_code/eval/full_prompt.md"
+        eval_output_log = work_dir+"/generate_code/eval/output.log"
+        replace_new_code_path = work_dir+"/generate_code/eval/new_code.py"
 
-        backend_prompt_file = "./backend/prompt.md"
-        backend_template_code = "./backend/template_code.md"
-        backend_output_file = "./backend/output.py"
-        backend_full_prompt_file = "./backend/full_prompt.md"  
-        replace_backend_code_path = "/home/shafee/fmd/backend/main.py"
+        backend_prompt_file = work_dir+"/generate_code/backend/prompt.md"
+        backend_template_code = work_dir+"/generate_code/backend/template_code.md"
+        backend_output_file = work_dir+"/generate_code/backend/output.py"
+        backend_full_prompt_file = work_dir+"/generate_code/backend/full_prompt.md"  
+        replace_backend_code_path = work_dir+"/backend/main.py"
 
-        frontend_prompt_file = "./frontend/prompt.md"
-        frontend_template_code = "./frontend/template_code.md"
-        frontend_output_file = "./frontend/output.jsx"
-        frontend_full_prompt_file = "./frontend/full_prompt.md" 
-        replace_frontend_code_path = "/home/shafee/fmd/frontend/src/App.jsx"
+        frontend_prompt_file = work_dir+"/generate_code/frontend/prompt.md"
+        frontend_template_code = work_dir+"/generate_code/frontend/template_code.md"
+        frontend_output_file = work_dir+"/generate_code/frontend/output.jsx"
+        frontend_full_prompt_file = work_dir+"/generate_code/frontend/full_prompt.md" 
+        replace_frontend_code_path = work_dir+"/frontend/src/App.jsx"
         
         logger.debug("Starting main execution")
 
@@ -61,6 +62,7 @@ def main():
         eval_output = read_file(eval_output_log)
 
         get_prompt_execute_store(chat_session, backend_prompt_file, backend_template_code, extracted_data, df, backend_full_prompt_file, backend_output_file, eval_output, replace_backend_code_path)
+        
         get_prompt_execute_store(chat_session, frontend_prompt_file, frontend_template_code, extracted_data, df, frontend_full_prompt_file, frontend_output_file, eval_output, replace_frontend_code_path)
     except Exception as e:
         logger.error(f"Error in main execution: {e}")

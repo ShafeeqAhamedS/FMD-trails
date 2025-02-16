@@ -7,3 +7,5 @@ pydantic
 numpy
 scikit-learn
 pandas
+
+#ipykernel - optional for jupyter notebook

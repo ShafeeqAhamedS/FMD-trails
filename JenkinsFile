@@ -1,0 +1,83 @@
+pipeline {
+    agent any
+
+    environment {
+        WORK_DIR = '/home/ubuntu/FMD-trails'  // Set your working directory path here
+        VENV_PATH = "$WORK_DIR/venv/bin/activate"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                script {
+                    dir("/home/ubuntu") {
+                        // Checkout the repository to the working directory
+                        git branch: 'main', url: 'https://github.com/ShafeeqAhamedS/FMD-trails.git'
+                    }
+                }
+            }
+        }
+        stage('Create venv & Set up Python Environment') {
+            steps {
+                script {
+                    // Create a virtual environment
+                    sh """
+                        python3 -m venv $WORK_DIR/venv
+                        source $VENV_PATH
+                        pip install -r $WORK_DIR/requirements.txt
+                    """
+                }
+            }
+        }
+
+        stage('Run Python Script') {
+            steps {
+                script {
+                    // Run the provided Python script
+                    sh """
+                        source $VENV_PATH
+                        python3 $WORK_DIR/main.py
+                    """
+                }
+            }
+        }
+
+        stage('Deploy Backend') {
+            steps {
+                script {
+                    // Deploy the backend service
+                    sh """
+                        cd $WORK_DIR
+                        ./deploy_backend.sh
+                    """
+                }
+            }
+        }
+
+        stage('Deploy Frontend') {
+            steps {
+                script {
+                    // Deploy the frontend service
+                    sh """
+                        cd $WORK_DIR
+                        ./deploy_frontend.sh
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Cleaning up temporary files if any...'
+        }
+
+        success {
+            echo 'Pipeline executed successfully.'
+        }
+
+        failure {
+            echo 'Pipeline failed. Check logs for details.'
+        }
+    }
+}

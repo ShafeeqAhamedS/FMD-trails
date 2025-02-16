@@ -11,13 +11,16 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, Extra
 import uvicorn
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LinearRegression
 
 # Setup logger
 logger = logging.getLogger("uvicorn.error")
 logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(
-    title="Salary Prediction API",  # Change to appropriate Title based on JSON block
+    title="Student Score Prediction API",  # Change to appropriate Title based on JSON block
     description="FastAPI service for serving predictions and evaluation metrics for the ML model.",
     version="1.0.0"
 )
@@ -38,7 +41,7 @@ app.add_middleware(
 
 class PredictionRequest(BaseModel):
     # Accepts an arbitrary number of inputs in key-value form.
-    # Example: { "inputs": { "Position": 0, "Level": 1} }
+    # Example: { "inputs": { "Hours": 5.0} }
     inputs: Dict[str, Any] = Field(..., description="A dictionary of input values (int, float, or string).")
     
     class Config:
@@ -50,71 +53,60 @@ class PredictionRequest(BaseModel):
 
 # Global model reference (loaded during startup)
 model = None
+mae = None
 mse = None
+rmse = None
 r2 = None
+mape = None
 
 # -------------------------
 # Utility: Model Prediction
 # -------------------------
-def model_predict(model, inputs: Dict[str, Any]) -> Any:
+def model_predict(model: LinearRegression, inputs: Dict[str, Any]) -> Any:
     """
-    Prediction function.
-    
-    Accepts a dictionary of inputs with keys "Position" and "Level", converts them to the correct types,
-    and returns the model's prediction.
+    Prediction function. Replace this with actual model inference logic.
     """
     try:
-        position = int(inputs["Position"])
-        level = int(inputs["Level"])
-        
-        # Make sure the input is a 2D array
-        input_data = [[position, level]]
-
-        prediction = model.predict(input_data)
-        return prediction.tolist()  # Return as list for JSON serialization
-    except (KeyError, ValueError) as e:
-        logger.error(f"Invalid input: {e}")
-        raise ValueError("Invalid input format. Please provide 'Position' and 'Level' as integers.")
+        hours = float(inputs.get("Hours"))
+        prediction = model.predict(np.array([[hours]]))
+        return prediction.tolist()
+    except (ValueError, TypeError) as e:
+        logger.error(f"Error during input conversion or prediction: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid input format. Please provide a valid number for 'Hours'."
+        )
     except Exception as e:
-        logger.error(f"Error during prediction: {e}")
-        raise Exception("An error occurred during prediction.")
+        logger.error(f"Unexpected error during prediction: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred during prediction."
+        )
 
 # ---------------------------
 # Startup and Shutdown Events
 # ---------------------------
 @app.on_event("startup")
-def load_model_event():
+def load_model():
     """
     Load the model during startup from a pickle file.
     """
-    global model
-    global mse
-    global r2
-    model_path = "./finalized_model.pickle"  # update with the model file path based on given JSON block
+    global model, mae, mse, rmse, r2, mape
+    model_path = "model.pkl"  # update with the model file path based on given JSON block
 
     try:
         with open(model_path, "rb") as f:
             model = pickle.load(f)
         logger.info(f"Model loaded successfully from {model_path}")
-
-        # Set evaluation metrics if available.
-        mse = 462500000.0
-        r2 = 0.48611111111111116
-
-    except FileNotFoundError as e:
-        logger.error(f"Failed to load model from {model_path}: {e}")
-        model = None
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Model file not found."
-        )
+        
+        mae = 4.691397441397446
+        mse = 25.463280738222593
+        rmse = 5.046115410711748
+        r2 = 0.9555700801388128
+        mape = 11.581971484864278
     except Exception as e:
         logger.error(f"Failed to load model from {model_path}: {e}")
         model = None
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Failed to load model."
-        )
 
 
 @app.on_event("shutdown")
@@ -143,26 +135,26 @@ async def health_check():
     """
     Health check endpoint. Returns a simple status message to confirm the API is running and the model is loaded.
     """
-    if model is None:
-        raise HTTPException(
+    if model is not None:
+         return {"status": "ok"}
+    else:
+         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Model is not loaded. Please try again later."
         )
-    return {"status": "ok"}
 
 
 @app.post("/predict", tags=["Prediction"])
 async def predict(payload: PredictionRequest):
     """
     Prediction endpoint.
-    Expects a JSON payload with a dictionary of inputs containing "Position" and "Level" as integers.
-    Returns model predictions.
+    Expects a JSON payload with a dictionary of inputs, which may include strings, integers, or floats.
+    Returns model predictions or processed results.
     
     Example Input: 
     {
         "inputs": {
-            "Position": 2,
-            "Level": 2
+            "Hours": 5.0
         }
     }
     """
@@ -178,11 +170,6 @@ async def predict(payload: PredictionRequest):
     try:
         # Call the model_predict function which should contain your actual inference logic.
         predictions = model_predict(model, payload.inputs)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
     except Exception as e:
         logger.error(f"Error during model prediction: {e}")
         raise HTTPException(
@@ -197,15 +184,17 @@ async def predict(payload: PredictionRequest):
 async def get_metrics():
     """
     Metrics endpoint.
-    Returns model evaluation metrics (MSE and R2) if available.
+    Returns model evaluation metrics (MAE, MSE, RMSE, R², MAPE) only if available.
     """
-    global mse
-    global r2
-
-    if mse is not None and r2 is not None:
+    global mae, mse, rmse, r2, mape
+    
+    if all(v is not None for v in [mae, mse, rmse, r2, mape]):
         return {
-            "mse": mse,
-            "r2": r2
+            "MAE": mae,
+            "MSE": mse,
+            "RMSE": rmse,
+            "R²": r2,
+            "MAPE": mape
         }
     else:
         return {"message": "No metrics available"}
