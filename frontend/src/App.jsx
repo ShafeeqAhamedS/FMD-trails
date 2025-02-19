@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react"
 import axios from "axios"
 
-const API_BASE_URL = "http://localhost:8000"
+import {API_BASE_URL} from "./api_route"
 
 const App = () => {
   const [inputs, setInputs] = useState({ Hours: "" })  // Adjusted based on the model inputs from JSON Code block
