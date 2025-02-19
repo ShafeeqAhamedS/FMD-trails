@@ -8,7 +8,7 @@ import pickle
 import logging
 from typing import Dict, Any
 
-from fastapi import FastAPI, HTTPException, Request, status
+from fastapi import FastAPI, HTTPException, Request, status, APIRouter
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, Extra
@@ -119,6 +119,9 @@ async def global_exception_handler(request: Request, exc: Exception):
 # -------------------
 # API Route Handlers
 # -------------------
+
+# Create an APIRouter instance with prefix "/api"
+api_router = APIRouter(prefix="/api")
 
 @app.get("/health", tags=["Health"])
 async def health_check():
