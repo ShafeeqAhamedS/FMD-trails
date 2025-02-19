@@ -123,7 +123,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 # Create an APIRouter instance with prefix "/api"
 api_router = APIRouter(prefix="/api")
 
-@app.get("/health", tags=["Health"])
+@api_router.get("/health", tags=["Health"])
 async def health_check():
     """
     Health check endpoint. Returns a simple status message to confirm the API is running and the model is loaded.
@@ -131,7 +131,7 @@ async def health_check():
     return {"status": "ok"}
 
 
-@app.post("/predict", tags=["Prediction"])
+@api_router.post("/predict", tags=["Prediction"])
 async def predict(payload: PredictionRequest):
     """
     Prediction endpoint.
@@ -169,7 +169,7 @@ async def predict(payload: PredictionRequest):
     return {"predictions": predictions}
 
 
-@app.get("/metrics", tags=["Metrics"])
+@api_router.get("/metrics", tags=["Metrics"])
 async def get_metrics():
     """
     Metrics endpoint.
@@ -190,6 +190,8 @@ async def get_metrics():
     else:
         return {"message": "No metrics available"}
 
+# Include the router in the app
+app.include_router(api_router)
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
